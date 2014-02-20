@@ -11,32 +11,8 @@ env_dir=$3
 
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_start"
 
-# Output npm debug info on error
-trap cat_npm_debug_log ERR
-
-# Look in package.json's engines.node field for a semver range
-semver_range=$(cat $build_dir/package.json | $bp_dir/vendor/jq -r .engines.node)
-
 # Resolve node version using semver.io
-node_version=$(curl --silent --get --data-urlencode "range=${semver_range}" https://semver.io/node/resolve)
-
-# Recommend using semver ranges in a safe manner
-if [ "$semver_range" == "null" ]; then
-  protip "Specify a node version in package.json"
-  semver_range=""
-elif [ "$semver_range" == "*" ]; then
-  protip "Avoid using semver ranges like '*' in engines.node"
-elif [ ${semver_range:0:1} == ">" ]; then
-  protip "Avoid using semver ranges starting with '>' in engines.node"
-fi
-
-# Output info about requested range and resolved node version
-if [ "$semver_range" == "" ]; then
-  echo "Defaulting to latest stable node: $node_version"
-else
-  echo "Requested node range:  $semver_range"
-  echo "Resolved node version: $node_version"
-fi
+node_version=$(curl --silent --get --data-urlencode https://semver.io/node/resolve)
 
 # Download node from Heroku's S3 mirror of nodejs.org/dist
 echo "Downloading and installing node"
