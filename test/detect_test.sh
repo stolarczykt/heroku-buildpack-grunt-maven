@@ -5,10 +5,12 @@
 testDetect()
 {
   touch ${BUILD_DIR}/pom.xml
+  touch ${BUILD_DIR}/package.json
+  touch ${BUILD_DIR}/Gruntfile.js
 
   detect
 
-  assertAppDetected "Java"
+  assertAppDetected "Grunt and Maven"
 }
 
 testNoDetectMissingPomFile()

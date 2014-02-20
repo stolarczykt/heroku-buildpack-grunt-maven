@@ -4,7 +4,114 @@
 # fail fast
 set -e
 
-logger -p user.notice -t "slugc[$$]" "language_pack_java java_compile_start"
+# Configure directories
+build_dir=$1
+cache_dir=$2
+env_dir=$3
+
+# Load some convenience functions like status(), echo(), and indent()
+source $bp_dir/bin/common.sh
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_start"
+
+# Output npm debug info on error
+trap cat_npm_debug_log ERR
+
+# Look in package.json's engines.node field for a semver range
+semver_range=$(cat $build_dir/package.json | $bp_dir/vendor/jq -r .engines.node)
+
+# Resolve node version using semver.io
+node_version=$(curl --silent --get --data-urlencode "range=${semver_range}" https://semver.io/node/resolve)
+
+# Recommend using semver ranges in a safe manner
+if [ "$semver_range" == "null" ]; then
+  protip "Specify a node version in package.json"
+  semver_range=""
+elif [ "$semver_range" == "*" ]; then
+  protip "Avoid using semver ranges like '*' in engines.node"
+elif [ ${semver_range:0:1} == ">" ]; then
+  protip "Avoid using semver ranges starting with '>' in engines.node"
+fi
+
+# Output info about requested range and resolved node version
+if [ "$semver_range" == "" ]; then
+  status "Defaulting to latest stable node: $node_version"
+else
+  status "Requested node range:  $semver_range"
+  status "Resolved node version: $node_version"
+fi
+
+# Download node from Heroku's S3 mirror of nodejs.org/dist
+status "Downloading and installing node"
+node_url="http://s3pository.heroku.com/node/v$node_version/node-v$node_version-linux-x64.tar.gz"
+curl $node_url -s -o - | tar xzf - -C $build_dir
+
+# Move node (and npm) into ./vendor and make them executable
+mkdir -p $build_dir/vendor
+mv $build_dir/node-v$node_version-linux-x64 $build_dir/vendor/node
+chmod +x $build_dir/vendor/node/bin/*
+PATH=$PATH:$build_dir/vendor/node/bin
+
+# Run subsequent node/npm commands from the build path
+cd $build_dir
+
+# If node_modules directory is checked into source control then
+# rebuild any native deps. Otherwise, restore from the build cache.
+if test -d $build_dir/node_modules; then
+  status "Found existing node_modules directory; skipping cache"
+  status "Rebuilding any native dependencies"
+  npm rebuild 2>&1 | indent
+elif test -d $cache_dir/node_modules; then
+  status "Restoring node_modules directory from cache"
+  cp -r $cache_dir/node_modules $build_dir/
+
+  status "Pruning cached dependencies not specified in package.json"
+  npm prune 2>&1 | indent
+fi
+
+# Scope config var availability only to `npm install`
+(
+  if [ -d "$env_dir" ]; then
+    status "Exporting config vars to environment"
+    export_env_dir $env_dir
+  fi
+
+  status "Installing dependencies"
+  # Make npm output to STDOUT instead of its default STDERR
+  npm install --userconfig $build_dir/.npmrc | indent
+)
+
+status "Caching node_modules directory for future builds"
+rm -rf $cache_dir/node_modules
+mkdir -p $cache_dir
+test -d $build_dir/node_modules && cp -r $build_dir/node_modules $cache_dir/
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_end"
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven grunt_task_start"
+
+# Check and run Grunt
+(
+  if [ -f $build_dir/grunt.js ] || [ -f $build_dir/Gruntfile.js ] || [ -f $build_dir/Gruntfile.coffee ]; then
+    # get the env vars
+    if [ -d "$env_dir" ]; then
+      status "Exporting config vars to environment"
+      export_env_dir $env_dir
+    fi
+
+    # make sure that grunt and grunt-cli are installed locally
+    npm install grunt-cli
+    npm install grunt
+    echo "-----> Found Gruntfile, running grunt heroku:$NODE_ENV task"
+    $build_dir/node_modules/.bin/grunt heroku:$NODE_ENV
+  else
+    echo "-----> No Gruntfile (grunt.js, Gruntfile.js, Gruntfile.coffee) found"
+  fi
+)
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven grunt_task_end"
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven java_compile_start"
 
 BIN_DIR=$(cd $(dirname $0); pwd) # absolute path
 
@@ -30,7 +137,7 @@ elif [ -f $CACHE_DIR/removeM2Cache ]; then
 fi
 
 if [ "true" == $KEEP_M2_CACHE ]; then
-  logger -p user.notice -t "slugc[$$]" "language_pack_java retain_m2_repo"
+  logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven retain_m2_repo"
 fi
 
 #create the cache dir if it doesn't exist
@@ -103,4 +210,10 @@ mkdir -p $(dirname $PROFILE_PATH)
 echo 'export PATH="/app/.jdk/bin:$PATH"' >> $PROFILE_PATH
 echo 'export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Djava.rmi.server.useCodebaseOnly=true"' >> $PROFILE_PATH
 
-logger -p user.notice -t "slugc[$$]" "language_pack_java java_compile_end $LOGGER_FLAGS"
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven java_compile_end $LOGGER_FLAGS"
+
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven cleanup $LOGGER_FLAGS"
+
+status "Cleaning up node-gyp and npm artifacts"
+rm -rf "$build_dir/.node-gyp"
+rm -rf "$build_dir/.npm"
