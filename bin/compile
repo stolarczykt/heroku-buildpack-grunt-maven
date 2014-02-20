@@ -12,7 +12,7 @@ env_dir=$3
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_start"
 
 # Resolve node version using semver.io
-node_version=$(curl --silent --get --data-urlencode https://semver.io/node/resolve)
+node_version=$(curl --silent --get https://semver.io/node/resolve)
 
 # Download node from Heroku's S3 mirror of nodejs.org/dist
 echo "Downloading and installing node"
