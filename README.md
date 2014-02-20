@@ -1,7 +1,9 @@
 Heroku buildpack: Grunt and Maven
 =========================
 
-This is a [Heroku buildpack](http://devcenter.heroku.com/articles/buildpack) for apps with a Grunt build process for the frontend and a Maven build process for the backend..
+This is a [Heroku buildpack](http://devcenter.heroku.com/articles/buildpack) for apps with a Grunt build process for the frontend and a Maven build process for the backend.
+
+Optionally it will install bower dependencies if there is a bower.json file present.
 
 It uses Maven 3.0.3 to build your application and OpenJDK 1.6.0_20 to run it.
 
@@ -11,7 +13,7 @@ Usage
 Example usage:
 
     $ ls
-    Gruntfile.js Procfile  pom.xml  src
+    (bower.json) Gruntfile.js Procfile  pom.xml  src
 
     $ heroku create --stack cedar --buildpack https://github.com/whyjustin/heroku-buildpack-grunt-maven
 

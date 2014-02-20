@@ -61,6 +61,15 @@ test -d $build_dir/node_modules && cp -r $build_dir/node_modules $cache_dir/
 
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_end"
 
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven bower_install_start"
+if [ -f $1/bower.json ]; then
+  echo "Found bower.json, running bower install"
+  npm install bower
+
+  $build_dir/node_modules/.bin/bower install
+fi
+logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven bower_install_end"
+
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven grunt_task_start"
 
 # Check and run Grunt
@@ -75,10 +84,10 @@ logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven grunt_task_start
     # make sure that grunt and grunt-cli are installed locally
     npm install grunt-cli
     npm install grunt
-    echo "-----> Found Gruntfile, running grunt heroku:$NODE_ENV task"
-    $build_dir/node_modules/.bin/grunt heroku:$NODE_ENV
+    echo "Found Gruntfile, running grunt heroku task"
+    $build_dir/node_modules/.bin/grunt heroku
   else
-    echo "-----> No Gruntfile (grunt.js, Gruntfile.js, Gruntfile.coffee) found"
+    echo "No Gruntfile (grunt.js, Gruntfile.js, Gruntfile.coffee) found"
   fi
 )
 
