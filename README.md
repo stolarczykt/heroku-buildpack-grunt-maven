@@ -11,7 +11,7 @@ Usage
 Example usage:
 
     $ ls
-    Procfile  pom.xml  src
+    Gruntfile.js Procfile  pom.xml  src
 
     $ heroku create --stack cedar --buildpack https://github.com/whyjustin/heroku-buildpack-grunt-maven
 
