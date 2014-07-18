@@ -26,6 +26,8 @@ echo $build_dir;
 echo $cache_dir;
 echo $env_dir;
 
+tree $build_dir
+
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_start"
 
 # Resolve node version using semver.io
