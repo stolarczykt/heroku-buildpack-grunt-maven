@@ -42,7 +42,14 @@ mv $build_dir/node-v$node_version-linux-x64 $build_dir/vendor/node
 chmod +x $build_dir/vendor/node/bin/*
 PATH=$PATH:$build_dir/vendor/node/bin
 
+echo "Installing bower using npm"
 npm install -g bower
+
+echo "Installing grunt-cli using npm"
+npm install -g grunt-cli
+
+echo "Installing grunt using npm"
+npm install -g grunt
 
 # Run subsequent node/npm commands from the build path
 cd $build_dir
