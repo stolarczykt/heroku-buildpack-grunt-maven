@@ -68,7 +68,9 @@ fi
 
   echo "Installing dependencies"
   # Make npm output to STDOUT instead of its default STDERR
+  cd $build_dir/src/main/java/webapp/frontend
   npm install --userconfig $build_dir/.npmrc
+  cd $build_dir
 )
 
 echo "Caching node_modules directory for future builds"
