@@ -26,6 +26,8 @@ echo $build_dir;
 echo $cache_dir;
 echo $env_dir;
 
+bower -v
+
 logger -p user.notice -t "slugc[$$]" "language_pack_grunt_maven node_install_start"
 
 # Resolve node version using semver.io
@@ -41,6 +43,8 @@ mkdir -p $build_dir/vendor
 mv $build_dir/node-v$node_version-linux-x64 $build_dir/vendor/node
 chmod +x $build_dir/vendor/node/bin/*
 PATH=$PATH:$build_dir/vendor/node/bin
+
+npm install -g bower
 
 # Run subsequent node/npm commands from the build path
 cd $build_dir
